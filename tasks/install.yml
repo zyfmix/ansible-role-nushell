@@ -17,9 +17,32 @@
   ansible.builtin.set_fact:
     nushell_package: "nu-{{ _nushell_version }}-{{ arch_map[ansible_architecture] | default(ansible_architecture) }}-{{ package_map['linux'][libc_flavor][nushell_variant] if ansible_system == 'Linux' else package_map['darwin'][nushell_variant] }}"
 
+- name: Print nushell_package information from the previous task
+  ansible.builtin.debug:
+    msg: "{{ nushell_package }}"
+
+- name: Download nushell
+  ansible.builtin.get_url:
+    #url: https://github.com/nushell/nushell/releases/download/0.92.2/nu-0.92.2-aarch64-apple-darwin.tar.gz
+    #url: "https://mirror.ghproxy.com/https://github.com/nushell/nushell/releases/download/{{ _nushell_version }}/{{ nushell_package }}.tar.gz"
+    url: "https://github.com/nushell/nushell/releases/download/{{ _nushell_version }}/{{ nushell_package }}.tar.gz"
+    dest: /Users/coam/Downloads/{{ _nushell_version }}-{{ nushell_package }}.tar.gz
+  #environment:
+  #  http_proxy: http://127.0.0.1:7890
+  #  https_proxy: http://127.0.0.1:7890
+  #  all_proxy: socks5://127.0.0.1:7890
+
+- name: check if gtar is installed
+  shell: command -v gtar
+  register: gtar_exists
+  ignore_errors: yes
+
 - name: Extract package
   ansible.builtin.unarchive:
-    src: "https://github.com/nushell/nushell/releases/download/{{ _nushell_version }}/{{ nushell_package }}.tar.gz"
+    #src: "https://github.com/nushell/nushell/releases/download/{{ _nushell_version }}/{{ nushell_package }}.tar.gz"
+    #src: "https://mirror.ghproxy.com/https://github.com/nushell/nushell/releases/download/{{ _nushell_version }}/{{ nushell_package }}.tar.gz"
+    #src: https://mirror.ghproxy.com/https://github.com/nushell/nushell/releases/download/0.92.2/nu-0.92.2-aarch64-apple-darwin.tar.gz
+    src: /Users/coam/Downloads/{{ _nushell_version }}-{{ nushell_package }}.tar.gz
     dest: "/tmp"
     remote_src: yes
   notify:
@@ -34,6 +57,14 @@
     group: "{{ 'root' if ansible_system == 'Linux' else 'wheel' }}"
     mode: 0751
     remote_src: yes
+
+#- name: change nu file permissions
+#  become: true
+#  ansible.builtin.file:
+#    path: '{{ item.file }}'
+#    mode: '{{ item.mode }}'
+#  loop:
+#    - { file: "{{ nushell_binary_path }}", mode: 751 }
 
 - name: Move nushell plugins to proper location
   become: true
